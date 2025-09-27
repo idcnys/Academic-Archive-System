@@ -129,7 +129,7 @@ export function FooterComponent() {
           >
             ©2025
             <Link
-              href="/contact&help/developers"
+              href="https://www.ruetcsearchive.app/contact&help/developers"
               className={`ml-1 hover:underline `}
             >
               Avengers (sec c)
