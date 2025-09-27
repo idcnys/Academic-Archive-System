@@ -1,0 +1,122 @@
+{
+  "rules": {
+    ".read": "auth != null",
+    ".write": "auth != null",
+
+    "codeSnippets": {
+      ".indexOn": ["rollNumber", "language", "date", "difficulty"],
+      "$snippetId": {
+    ".read": true,
+    "likes": {
+      ".write": "auth != null"
+    },
+    "comments": {
+      ".write": "auth != null"
+    }
+  }
+    },
+
+    "codeSnippetComments": {
+      "$snippetId": {
+        ".indexOn": ["timestamp", "author/roll"],
+        ".read": true,
+        "$commentId": {
+          ".write": true,
+          ".validate": "newData.hasChildren(['content', 'author', 'timestamp'])"
+        }
+      }
+    },
+
+    "doubts": {
+      ".indexOn": ["status", "timestamp", "userDetails/roll"],
+      "$doubtId": {
+        ".read": true,
+        ".write": true,
+        ".validate": "newData.hasChildren(['title', 'description', 'userDetails', 'timestamp'])"
+      }
+    },
+
+    "resolvedDoubts": {
+      ".indexOn": ["userSatisfied", "timestamp", "status"],
+      "$doubtId": {
+        ".read": true,
+        ".write": true
+      }
+    },
+
+    "notifications": {
+      "$userRoll": {
+        ".indexOn": ["read", "timestamp", "type"],
+        ".read": true,
+        ".write": true,
+        "$notificationId": {
+          ".validate": true
+        }
+      }
+    },
+
+    "userNutrinos": {
+      "$userRoll": {
+        ".indexOn": ["totalNutrinos", "lastUpdated"],
+        ".read": true,
+        ".write": true
+      }
+    },
+
+    "solverPoints": {
+      "$userRoll": {
+        ".indexOn": ["totalPoints", "doubtsResolved"],
+        ".read": true,
+        ".write": true
+      }
+    },
+
+    "reviewerNotifications": {
+      ".indexOn": ["timestamp", "read", "type"],
+      "$notificationId": {
+        ".read": true,
+        ".write": true
+      }
+    },
+
+    "groupMessages": {
+      "$groupId": {
+        ".indexOn": ["timestamp", "senderRoll"],
+        ".read": true,
+        ".write": true
+      }
+    },
+
+    "groupPolls": {
+      "$groupId": {
+        ".indexOn": ["timestamp", "isActive", "createdBy"],
+        ".read": true,
+        ".write": true
+      }
+    },
+
+    "presence": {
+      "$userRoll": {
+        ".read": true,
+        ".write": true,
+        ".validate": "newData.hasChildren(['online', 'lastSeen'])"
+      }
+    },
+
+    "activeUsers": {
+      "$userRoll": {
+        ".read": true,
+        ".write": true
+      }
+    },
+
+    "typingIndicators": {
+      "$groupId": {
+        "$userRoll": {
+          ".read": true,
+          ".write": true
+        }
+      }
+    }
+  }
+}
