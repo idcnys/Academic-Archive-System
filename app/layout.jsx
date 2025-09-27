@@ -12,15 +12,15 @@ import { SpeedInsights } from "@vercel/speed-insights/next";
 export const metadata = {
   metadataBase: new URL("https://csearchive.vercel.app"),
   title: {
-    default: "RUET CSE Archive - Complete Resource Hub for CSE Students",
-    template: "%s | RUET CSE Archive",
+    default: "RUET Civil Archive - Complete Resource Hub for Students",
+    template: "%s | RUET Civil Archive",
   },
   description:
     "The ultimate archive of Computer Science & Engineering resources for RUET students. Access notes, code libraries, academic materials, alumni network, and comprehensive study resources.",
   keywords: [
     "RUET",
-    "CSE",
-    "Computer Science",
+    "Civil",
+    "Civil Science",
     "Engineering",
     "Archive",
     "Resources",
