@@ -1,0 +1,18 @@
+{
+  "pages": {},
+  "app": {
+    "[project]/app/admin/maintain/page": [
+      "static/media/AvengeroRegular-s.p.e96139dc.ttf",
+      "static/media/S6u9w4BMUTPHh50XSwiPGQ3q5d0-s.p.00726523.woff2",
+      "static/media/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa1ZL7W0Q5nw-s.p.0faac26c.woff2",
+      "static/media/S6u9w4BMUTPHh7USSwiPGQ3q5d0-s.p.3bba147b.woff2",
+      "static/media/S6uyw4BMUTPHjx4wXiWtFCc-s.p.b70afd82.woff2",
+      "static/media/XRXV3I6Li01BKofINeaBTMnFcQ-s.p.5b5a25ed.woff2",
+      "static/media/S6u8w4BMUTPHh30AXC_qNiXg7Q-s.p.01183af7.woff2",
+      "static/media/AvengeanceHeroicAvengerItalic-s.p.8aed899e.otf",
+      "static/media/S6u9w4BMUTPHh6UVSwiPGQ3q5d0-s.p.c516d566.woff2"
+    ]
+  },
+  "appUsingSizeAdjust": true,
+  "pagesUsingSizeAdjust": false
+}

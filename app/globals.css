@@ -1,6 +1,4 @@
 @import "tailwindcss";
-@plugin "flowbite-react/plugin/tailwindcss";
-@source "../.flowbite-react/class-list.json";
 
 .shiny-text {
   /* color: #b5b5b5a4;  */
@@ -728,13 +726,17 @@ code {
 
 /* Optimized resource card hover effects */
 .resource-card {
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  /* Minimal card baseline: subtle border and small transition */
+  transition: transform 180ms ease, box-shadow 180ms ease;
+  border-radius: 0.5rem; /* keep rounded look but modest */
+  border: 1px solid rgba(15, 23, 42, 0.06); /* subtle border */
+  background-clip: padding-box;
 }
 
 .resource-card:hover {
-  transform: translateY(-4px) scale(1.02);
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1),
-    0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  /* Slight lift without heavy scaling or large shadows */
+  transform: translateY(-3px);
+  box-shadow: 0 6px 18px rgba(2, 6, 23, 0.06);
 }
 
 /* Shimmer animation for main page loading */

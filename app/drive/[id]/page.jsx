@@ -4,6 +4,13 @@ import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, use } from "react";
+import Bookmarks from "@/components/drive/bookmarks";
+import {
+  getBookmarks as loadBookmarksFromStorage,
+  addBookmark as addBookmarkToStorage,
+  removeBookmark as removeBookmarkFromStorage,
+  isBookmarked as checkIsBookmarked,
+} from "@/lib/bookmarks";
 
 import { motion } from "framer-motion";
 import { lato } from "@/app/ui/fonts";
@@ -19,6 +26,9 @@ export default function DrivePage({ params }) {
   const [previewID, setPreviewId] = useState(null);
   const [breadcrumb, setBreadcrumb] = useState([]);
   const [currentFolder, setCurrentFolder] = useState(null);
+  const [bookmarks, setBookmarks] = useState([]);
+  const [showBookmarks, setShowBookmarks] = useState(false);
+  const [toast, setToast] = useState(null);
 
   // Helper functions for localStorage breadcrumb management
   const getBreadcrumbFromStorage = () => {
@@ -61,6 +71,36 @@ export default function DrivePage({ params }) {
   };
 
   useEffect(() => {
+    // load bookmarks from localStorage on mount
+    const loadBookmarks = () => {
+      try {
+        const stored = loadBookmarksFromStorage();
+        setBookmarks(stored || []);
+      } catch (e) {
+        console.warn("Failed to load bookmarks:", e);
+      }
+    };
+
+    // Listen for localStorage changes to sync bookmarks
+    const handleStorageChange = (e) => {
+      if (e.key === 'driveBookmarks') {
+        loadBookmarks();
+      }
+    };
+
+    // Listen for custom bookmark events for same-tab sync
+    const handleBookmarkUpdate = () => {
+      loadBookmarks();
+    };
+
+    loadBookmarks();
+    
+    // Add storage event listener for cross-component sync
+    if (typeof window !== 'undefined') {
+      window.addEventListener('storage', handleStorageChange);
+      window.addEventListener('bookmarks-updated', handleBookmarkUpdate);
+    }
+
     const fetchFiles = async () => {
       try {
         setLoading(true);
@@ -113,7 +153,129 @@ export default function DrivePage({ params }) {
     if (resolvedParams.id) {
       fetchFiles();
     }
+
+    // Cleanup function
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('storage', handleStorageChange);
+        window.removeEventListener('bookmarks-updated', handleBookmarkUpdate);
+      }
+    };
   }, [resolvedParams.id]);
+
+  // helper handlers for bookmarks and sharing
+  const handleAddBookmark = () => {
+    if (!currentFolder) return;
+    const bookmark = {
+      id: currentFolder.id,
+      name: currentFolder.name || `Folder ${currentFolder.id}`,
+      type: 'folder',
+      mimeType: 'application/vnd.google-apps.folder',
+      path: `/drive/${currentFolder.id}`,
+      createdAt: new Date().toISOString(),
+    };
+
+    const updated = addBookmarkToStorage(bookmark);
+    setBookmarks(updated);
+    
+    // Trigger custom event for same-tab sync
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('bookmarks-updated'));
+    }
+    
+    setToast("Folder bookmarked");
+    setTimeout(() => setToast(null), 1800);
+  };
+
+  const handleToggleBookmarks = () => setShowBookmarks((s) => !s);
+
+  const handleShareCurrent = async () => {
+    if (!currentFolder || typeof window === "undefined") return;
+    const url = `${window.location.origin}/drive/${currentFolder.id}`;
+    
+    let copySuccess = false;
+    
+    // Try to copy to clipboard first
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(url);
+        copySuccess = true;
+      } else {
+        // Fallback for older browsers
+        const textArea = document.createElement('textarea');
+        textArea.value = url;
+        textArea.style.position = 'fixed';
+        textArea.style.opacity = '0';
+        document.body.appendChild(textArea);
+        textArea.select();
+        copySuccess = document.execCommand('copy');
+        document.body.removeChild(textArea);
+      }
+    } catch (e) {
+      console.error("Clipboard copy failed:", e);
+      // Try fallback method
+      try {
+        const textArea = document.createElement('textarea');
+        textArea.value = url;
+        textArea.style.position = 'fixed';
+        textArea.style.opacity = '0';
+        document.body.appendChild(textArea);
+        textArea.select();
+        copySuccess = document.execCommand('copy');
+        document.body.removeChild(textArea);
+      } catch (fallbackError) {
+        console.error("Fallback copy also failed:", fallbackError);
+      }
+    }
+    
+    // Then try native share if available
+    if (navigator.share && copySuccess) {
+      try {
+        await navigator.share({
+          title: currentFolder.name || 'Folder',
+          text: `Check out this folder: ${currentFolder.name || 'Folder'}`,
+          url: url
+        });
+        setToast("Shared successfully");
+        setTimeout(() => setToast(null), 1800);
+        return;
+      } catch (shareError) {
+        if (shareError.name === 'AbortError') {
+          setToast("Share cancelled - Link copied to clipboard");
+        } else {
+          console.log('Native share failed, showing clipboard success');
+          setToast("Link copied to clipboard");
+        }
+      }
+    } else if (copySuccess) {
+      setToast("Link copied to clipboard");
+    } else {
+      setToast("Share not available - Please copy the URL manually");
+    }
+    
+    setTimeout(() => setToast(null), 1800);
+  };
+
+  const handleOpenBookmark = (bookmark) => {
+    setShowBookmarks(false);
+    if (bookmark.type === 'folder' && bookmark.id) {
+      // Navigate to the folder
+      router.push(`/drive/${bookmark.id}`);
+    } else if (bookmark.type === 'file' && bookmark.parentFolderId) {
+      // Navigate to the folder containing the file
+      router.push(`/drive/${bookmark.parentFolderId}`);
+    }
+  };
+
+  const handleDeleteBookmark = (id) => {
+    const updated = removeBookmarkFromStorage(id);
+    setBookmarks(updated);
+    
+    // Trigger custom event for same-tab sync
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('bookmarks-updated'));
+    }
+  };
 
   // Initialize breadcrumb from localStorage on component mount
   useEffect(() => {
@@ -183,9 +345,36 @@ export default function DrivePage({ params }) {
               </ol>
             </nav>
 
-            <h1 className="text-3xl text-center font-bold mb-6 text-gray-700 dark:text-gray-300">
-              {currentFolder ? currentFolder.name : "Drive Files"}
-            </h1>
+            <div className="flex items-center justify-between mb-6">
+              <h1 className="text-3xl text-left font-bold text-gray-700 dark:text-gray-300">
+                {currentFolder ? currentFolder.name : "Drive Files"}
+              </h1>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleAddBookmark}
+                  className="text-[12px] border-2 border-gray-500 active:scale-95 transition-transform duration-300 text-gray-700 dark:text-gray-200 px-2 py-1 rounded-full text-center cursor-pointer"
+                >
+                  <i className="fas fa-bookmark mr-1"></i>
+                  Bookmark
+                </button>
+
+                <button
+                  onClick={handleShareCurrent}
+                  className="text-[12px] border-2 border-gray-500 active:scale-95 transition-transform duration-300 text-gray-700 dark:text-gray-200 px-2 py-1 rounded-full text-center cursor-pointer"
+                >
+                  <i className="fas fa-share mr-1"></i>
+                  Share
+                </button>
+
+                <button
+                  onClick={handleToggleBookmarks}
+                  className="text-[12px] border-2 border-gray-500 active:scale-95 transition-transform duration-300 text-gray-700 dark:text-gray-200 px-2 py-1 rounded-full text-center cursor-pointer"
+                >
+                  <i className="fas fa-bookmark"></i>
+                </button>
+              </div>
+            </div>
 
             {files.length === 0 ? (
               <p className="text-2xl text-center text-gray-700 dark:text-gray-300">
@@ -215,25 +404,132 @@ export default function DrivePage({ params }) {
                           }
                         }}
                       >
+                        {/* Image files */}
                         {(file.mimeType.includes("image/png") ||
-                          file.mimeType.includes("image/jpeg")) && (
+                          file.mimeType.includes("image/jpeg") ||
+                          file.mimeType.includes("image/jpg") ||
+                          file.mimeType.includes("image/gif") ||
+                          file.mimeType.includes("image/bmp") ||
+                          file.mimeType.includes("image/webp") ||
+                          file.name?.toLowerCase().endsWith('.png') ||
+                          file.name?.toLowerCase().endsWith('.jpg') ||
+                          file.name?.toLowerCase().endsWith('.jpeg') ||
+                          file.name?.toLowerCase().endsWith('.gif') ||
+                          file.name?.toLowerCase().endsWith('.bmp') ||
+                          file.name?.toLowerCase().endsWith('.webp')) && (
                           <i className="fas fa-file-image text-cyan-500"></i>
                         )}
-                        {file.mimeType.includes("mp4") && (
+                        
+                        {/* Video files */}
+                        {(file.mimeType.includes("video") ||
+                          file.mimeType.includes("mp4") ||
+                          file.name?.toLowerCase().endsWith('.mp4') ||
+                          file.name?.toLowerCase().endsWith('.avi') ||
+                          file.name?.toLowerCase().endsWith('.mov') ||
+                          file.name?.toLowerCase().endsWith('.wmv') ||
+                          file.name?.toLowerCase().endsWith('.flv') ||
+                          file.name?.toLowerCase().endsWith('.webm') ||
+                          file.name?.toLowerCase().endsWith('.mkv')) && (
                           <i className="fas fa-file-video text-indigo-500"></i>
                         )}
-                        {file.mimeType.includes("pdf") && (
-                          <i className="fas fa-file-pdf text-red-500  "></i>
+                        
+                        {/* Audio files */}
+                        {(file.mimeType.includes("audio") ||
+                          file.name?.toLowerCase().endsWith('.mp3') ||
+                          file.name?.toLowerCase().endsWith('.wav') ||
+                          file.name?.toLowerCase().endsWith('.flac') ||
+                          file.name?.toLowerCase().endsWith('.aac') ||
+                          file.name?.toLowerCase().endsWith('.ogg') ||
+                          file.name?.toLowerCase().endsWith('.wma')) && (
+                          <i className="fas fa-file-audio text-purple-500"></i>
                         )}
-                        {file.mimeType.includes("documentml") && (
-                          <i className="fas fa-file-word text-blue-500  "></i>
+                        
+                        {/* PDF files */}
+                        {(file.mimeType.includes("pdf") ||
+                          file.name?.toLowerCase().endsWith('.pdf')) && (
+                          <i className="fas fa-file-pdf text-red-500"></i>
                         )}
-                        {file.mimeType.includes("spreadsheetml") && (
-                          <i className="fas fa-file-excel text-green-500  "></i>
+                        
+                        {/* Word documents */}
+                        {(file.mimeType.includes("document") ||
+                          file.mimeType.includes("msword") ||
+                          file.mimeType.includes("wordprocessingml") ||
+                          file.name?.toLowerCase().endsWith('.doc') ||
+                          file.name?.toLowerCase().endsWith('.docx') ||
+                          file.name?.toLowerCase().endsWith('.rtf')) && (
+                          <i className="fas fa-file-word text-blue-500"></i>
                         )}
-                        {file.mimeType.includes("presentationml") && (
-                          <i className="fas fa-file-powerpoint text-orange-500  "></i>
+                        
+                        {/* Excel spreadsheets */}
+                        {(file.mimeType.includes("spreadsheet") ||
+                          file.mimeType.includes("excel") ||
+                          file.mimeType.includes("spreadsheetml") ||
+                          file.name?.toLowerCase().endsWith('.xls') ||
+                          file.name?.toLowerCase().endsWith('.xlsx') ||
+                          file.name?.toLowerCase().endsWith('.csv')) && (
+                          <i className="fas fa-file-excel text-green-500"></i>
                         )}
+                        
+                        {/* PowerPoint presentations */}
+                        {(file.mimeType.includes("presentation") ||
+                          file.mimeType.includes("powerpoint") ||
+                          file.mimeType.includes("presentationml") ||
+                          file.name?.toLowerCase().endsWith('.ppt') ||
+                          file.name?.toLowerCase().endsWith('.pptx')) && (
+                          <i className="fas fa-file-powerpoint text-orange-500"></i>
+                        )}
+                        
+                        {/* Text files */}
+                        {(file.mimeType.includes("text/plain") ||
+                          file.name?.toLowerCase().endsWith('.txt') ||
+                          file.name?.toLowerCase().endsWith('.log') ||
+                          file.name?.toLowerCase().endsWith('.md') ||
+                          file.name?.toLowerCase().endsWith('.readme')) && (
+                          <i className="fas fa-file-alt text-gray-500"></i>
+                        )}
+                        
+                        {/* Code files */}
+                        {(file.name?.toLowerCase().endsWith('.js') ||
+                          file.name?.toLowerCase().endsWith('.jsx') ||
+                          file.name?.toLowerCase().endsWith('.ts') ||
+                          file.name?.toLowerCase().endsWith('.tsx') ||
+                          file.name?.toLowerCase().endsWith('.html') ||
+                          file.name?.toLowerCase().endsWith('.css') ||
+                          file.name?.toLowerCase().endsWith('.scss') ||
+                          file.name?.toLowerCase().endsWith('.json') ||
+                          file.name?.toLowerCase().endsWith('.xml') ||
+                          file.name?.toLowerCase().endsWith('.py') ||
+                          file.name?.toLowerCase().endsWith('.java') ||
+                          file.name?.toLowerCase().endsWith('.cpp') ||
+                          file.name?.toLowerCase().endsWith('.c') ||
+                          file.name?.toLowerCase().endsWith('.php') ||
+                          file.name?.toLowerCase().endsWith('.rb') ||
+                          file.name?.toLowerCase().endsWith('.go') ||
+                          file.name?.toLowerCase().endsWith('.rs')) && (
+                          <i className="fas fa-file-code text-emerald-500"></i>
+                        )}
+                        
+                        {/* Archive files */}
+                        {(file.name?.toLowerCase().endsWith('.zip') ||
+                          file.name?.toLowerCase().endsWith('.rar') ||
+                          file.name?.toLowerCase().endsWith('.7z') ||
+                          file.name?.toLowerCase().endsWith('.tar') ||
+                          file.name?.toLowerCase().endsWith('.gz') ||
+                          file.name?.toLowerCase().endsWith('.bz2')) && (
+                          <i className="fas fa-file-archive text-yellow-600"></i>
+                        )}
+                        
+                        {/* Executable files */}
+                        {(file.name?.toLowerCase().endsWith('.exe') ||
+                          file.name?.toLowerCase().endsWith('.msi') ||
+                          file.name?.toLowerCase().endsWith('.deb') ||
+                          file.name?.toLowerCase().endsWith('.rpm') ||
+                          file.name?.toLowerCase().endsWith('.dmg') ||
+                          file.name?.toLowerCase().endsWith('.app')) && (
+                          <i className="fas fa-cog text-gray-600"></i>
+                        )}
+                        
+                        {/* Folders */}
                         {file.mimeType.includes("folder") && (
                           <Image
                             src="/images/folder.svg"
@@ -242,6 +538,26 @@ export default function DrivePage({ params }) {
                             height={80}
                           />
                         )}
+                        
+                        {/* Default file icon for unrecognized types */}
+                        {!file.mimeType.includes("image") &&
+                         !file.mimeType.includes("video") &&
+                         !file.mimeType.includes("audio") &&
+                         !file.mimeType.includes("pdf") &&
+                         !file.mimeType.includes("document") &&
+                         !file.mimeType.includes("msword") &&
+                         !file.mimeType.includes("wordprocessingml") &&
+                         !file.mimeType.includes("spreadsheet") &&
+                         !file.mimeType.includes("excel") &&
+                         !file.mimeType.includes("spreadsheetml") &&
+                         !file.mimeType.includes("presentation") &&
+                         !file.mimeType.includes("powerpoint") &&
+                         !file.mimeType.includes("presentationml") &&
+                         !file.mimeType.includes("text/plain") &&
+                         !file.mimeType.includes("folder") &&
+                         !file.name?.toLowerCase().match(/\.(png|jpg|jpeg|gif|bmp|webp|mp4|avi|mov|wmv|flv|webm|mkv|mp3|wav|flac|aac|ogg|wma|pdf|doc|docx|rtf|xls|xlsx|csv|ppt|pptx|txt|log|md|readme|js|jsx|ts|tsx|html|css|scss|json|xml|py|java|cpp|c|php|rb|go|rs|zip|rar|7z|tar|gz|bz2|exe|msi|deb|rpm|dmg|app)$/) && (
+                          <i className="fas fa-file text-gray-400"></i>
+                        )}
                       </div>
 
                       <h3 className="font-semibold text-lg text-gray-700 dark:text-gray-300 text-wrap truncate">
@@ -249,26 +565,137 @@ export default function DrivePage({ params }) {
                       </h3>
                     </div>
 
-                    {file.webContentLink && (
-                      <div className="mt-2 w-full px-6 lg:px-8">
-                        <div className="flex items-center justify-between gap-2 lg:gap-4">
-                          <Link
-                            href={file.webContentLink}
-                            className="flex-1 text-[12px] border-2 border-gray-500 active:scale-95 transition-transform duration-300 text-gray-700 dark:text-gray-200 px-1 py-1.5 rounded-full text-center cursor-pointer"
-                          >
-                            <i className="fas fa-download mr-1 text-xs font-medium"></i>
-                            Download
-                          </Link>
+                    {/* File actions - only show for files, not folders */}
+                    {!file.mimeType.includes("folder") && (
+                      <div className="mt-3 w-full px-2">
+                        <div className="flex justify-center gap-1 bg-gray-100 dark:bg-gray-800 rounded-full p-1">
+                          {/* Download */}
+                          {file.webContentLink && (
+                            <Link
+                              href={file.webContentLink}
+                              className="flex-1 text-center py-2 px-2 rounded-full hover:bg-white dark:hover:bg-gray-700 transition-all duration-200 group"
+                              title="Download"
+                            >
+                              <i className="fas fa-download text-gray-600 dark:text-gray-300 group-hover:text-blue-600 dark:group-hover:text-blue-400"></i>
+                            </Link>
+                          )}
+                          
+                          {/* Preview */}
+                          {file.webContentLink && (
+                            <button
+                              onClick={() =>
+                                setPreviewId(
+                                  previewID === file.id ? null : file.id
+                                )
+                              }
+                              className="flex-1 text-center py-2 px-2 rounded-full hover:bg-white dark:hover:bg-gray-700 transition-all duration-200 group"
+                              title={file.mimeType.includes("mp4") ? "Play" : "Preview"}
+                            >
+                              <i className="fas fa-eye text-gray-600 dark:text-gray-300 group-hover:text-green-600 dark:group-hover:text-green-400"></i>
+                            </button>
+                          )}
+                          
+                          {/* Bookmark */}
                           <button
-                            onClick={() =>
-                              setPreviewId(
-                                previewID === file.id ? null : file.id
-                              )
-                            }
-                            className="flex-1 text-[12px] border-2 border-gray-500 active:scale-95 transition-transform duration-300 text-gray-700 dark:text-gray-200 px-1 py-1.5 rounded-full text-center cursor-pointer"
+                            onClick={() => {
+                              // bookmark individual file
+                              const bookmark = {
+                                id: file.id,
+                                name: file.name,
+                                type: 'file',
+                                mimeType: file.mimeType,
+                                path: file.webContentLink || `/drive/${file.id}`,
+                                parentFolderId: currentFolder?.id || resolvedParams.id, // Store parent folder ID
+                                createdAt: new Date().toISOString(),
+                              };
+                              const updated = addBookmarkToStorage(bookmark);
+                              setBookmarks(updated);
+                              
+                              // Trigger custom event for same-tab sync
+                              if (typeof window !== 'undefined') {
+                                window.dispatchEvent(new CustomEvent('bookmarks-updated'));
+                              }
+                              
+                              setToast("File bookmarked");
+                              setTimeout(() => setToast(null), 1500);
+                            }}
+                            className="flex-1 text-center py-2 px-2 rounded-full hover:bg-white dark:hover:bg-gray-700 transition-all duration-200 group"
+                            title="Bookmark"
                           >
-                            <i className="fas fa-eye text-xs mr-1 font-medium"></i>
-                            {file.mimeType.includes("mp4") ? "Play" : "Preview"}
+                            <i className="fas fa-bookmark text-gray-600 dark:text-gray-300 group-hover:text-yellow-600 dark:group-hover:text-yellow-400"></i>
+                          </button>
+
+                          {/* Share */}
+                          <button
+                            onClick={async () => {
+                              const url = file.webContentLink || `${typeof window !== "undefined" ? window.location.origin : ""}/drive/${file.id}`;
+                              
+                              let copySuccess = false;
+                              
+                              // Try to copy to clipboard first
+                              try {
+                                if (navigator.clipboard && navigator.clipboard.writeText) {
+                                  await navigator.clipboard.writeText(url);
+                                  copySuccess = true;
+                                } else {
+                                  // Fallback for older browsers
+                                  const textArea = document.createElement('textarea');
+                                  textArea.value = url;
+                                  textArea.style.position = 'fixed';
+                                  textArea.style.opacity = '0';
+                                  document.body.appendChild(textArea);
+                                  textArea.select();
+                                  copySuccess = document.execCommand('copy');
+                                  document.body.removeChild(textArea);
+                                }
+                              } catch (e) {
+                                console.error("Clipboard copy failed:", e);
+                                // Try fallback method
+                                try {
+                                  const textArea = document.createElement('textarea');
+                                  textArea.value = url;
+                                  textArea.style.position = 'fixed';
+                                  textArea.style.opacity = '0';
+                                  document.body.appendChild(textArea);
+                                  textArea.select();
+                                  copySuccess = document.execCommand('copy');
+                                  document.body.removeChild(textArea);
+                                } catch (fallbackError) {
+                                  console.error("Fallback copy also failed:", fallbackError);
+                                }
+                              }
+                              
+                              // Then try native share if available
+                              if (navigator.share && copySuccess) {
+                                try {
+                                  await navigator.share({
+                                    title: file.name,
+                                    text: `Check out this file: ${file.name}`,
+                                    url: url
+                                  });
+                                  setToast("Shared successfully");
+                                  setTimeout(() => setToast(null), 1500);
+                                  return;
+                                } catch (shareError) {
+                                  if (shareError.name === 'AbortError') {
+                                    setToast("Share cancelled - Link copied to clipboard");
+                                  } else {
+                                    console.log('Native share failed, showing clipboard success');
+                                    setToast("Link copied to clipboard");
+                                  }
+                                }
+                              } else if (copySuccess) {
+                                setToast("Link copied to clipboard");
+                              } else {
+                                setToast("Share not available - Please copy the URL manually");
+                              }
+                              
+                              setTimeout(() => setToast(null), 1500);
+                            }}
+                            className="flex-1 text-center py-2 px-2 rounded-full hover:bg-white dark:hover:bg-gray-700 transition-all duration-200 group"
+                            title="Share"
+                          >
+                            <i className="fas fa-share text-gray-600 dark:text-gray-300 group-hover:text-purple-600 dark:group-hover:text-purple-400"></i>
                           </button>
                         </div>
                       </div>
@@ -302,46 +729,89 @@ export default function DrivePage({ params }) {
           ></iframe>
         </div>
       )}
+
+      {/* Bookmarks panel */}
+      {showBookmarks && (
+        <Bookmarks
+          bookmarks={bookmarks}
+          onOpen={handleOpenBookmark}
+          onDelete={handleDeleteBookmark}
+          onCopy={async (b) => {
+            const url = `${typeof window !== "undefined" ? window.location.origin : ""}/drive/${b.id}`;
+            
+            let copySuccess = false;
+            
+            // Try to copy to clipboard first
+            try {
+              if (navigator.clipboard && navigator.clipboard.writeText) {
+                await navigator.clipboard.writeText(url);
+                copySuccess = true;
+              } else {
+                // Fallback for older browsers
+                const textArea = document.createElement('textarea');
+                textArea.value = url;
+                textArea.style.position = 'fixed';
+                textArea.style.opacity = '0';
+                document.body.appendChild(textArea);
+                textArea.select();
+                copySuccess = document.execCommand('copy');
+                document.body.removeChild(textArea);
+              }
+            } catch (e) {
+              console.error("Clipboard copy failed:", e);
+              // Try fallback method
+              try {
+                const textArea = document.createElement('textarea');
+                textArea.value = url;
+                textArea.style.position = 'fixed';
+                textArea.style.opacity = '0';
+                document.body.appendChild(textArea);
+                textArea.select();
+                copySuccess = document.execCommand('copy');
+                document.body.removeChild(textArea);
+              } catch (fallbackError) {
+                console.error("Fallback copy also failed:", fallbackError);
+              }
+            }
+            
+            // Then try native share if available
+            if (navigator.share && copySuccess) {
+              try {
+                await navigator.share({
+                  title: b.name || 'Bookmark',
+                  text: `Check out this ${b.type === 'folder' ? 'folder' : 'file'}: ${b.name || 'Bookmark'}`,
+                  url: url
+                });
+                setToast("Shared successfully");
+                setTimeout(() => setToast(null), 1600);
+                return;
+              } catch (shareError) {
+                if (shareError.name === 'AbortError') {
+                  setToast("Share cancelled - Link copied to clipboard");
+                } else {
+                  console.log('Native share failed, showing clipboard success');
+                  setToast("Bookmark link copied");
+                }
+              }
+            } else if (copySuccess) {
+              setToast("Bookmark link copied");
+            } else {
+              setToast("Share not available - Please copy the URL manually");
+            }
+            
+            setTimeout(() => setToast(null), 1600);
+          }}
+          onClose={() => setShowBookmarks(false)}
+        />
+      )}
+
+      {/* Toast */}
+      {toast && (
+        <div className="fixed left-1/2 -translate-x-1/2 bottom-8 z-50 bg-black text-white px-4 py-2 rounded">
+          {toast}
+        </div>
+      )}
     </>
   );
 }
 
-{
-  /* <div className="flex gap-2">
-                      {file.webContentLink ? (
-                        <div className="w-full flex flex-col gap-2">
-                          <div className="flex items-center justify-between gap-4">
-                            <Link
-                              href={file.webContentLink}
-                              className="flex-1 border-2 border-gray-500 hover:bg-blue-600 transition-colors duration-500 text-gray-700 dark:text-gray-200 px-3 py-2 rounded text-sm font-normal text-center cursor-pointer"
-                            >
-                              <i className="fas fa-download mr-1"></i>
-                              Download
-                            </Link>
-                            <button
-                              onClick={() =>
-                                setPreviewId(
-                                  previewID === file.id ? null : file.id
-                                )
-                              }
-                              className="flex-1 border-2 border-gray-500 hover:bg-blue-600 transition-colors duration-500 text-gray-700 dark:text-gray-200 px-3 py-2 rounded text-sm font-normal text-center cursor-pointer"
-                            >
-                              <i className="fas fa-eye mr-1"></i>
-                              Preview
-                            </button>
-                          </div>
-                        </div>
-                      ) : (
-                        <button
-                          onClick={() => {
-                            router.push(`/resources/drive/${file.id}`);
-                          }}
-                          // href={`/resources/drive/${resolvedParams.id}/${file.id}`}
-                          className="flex-1 bg-blue-600 hover:bg-blue-700 text-gray-700 dark:text-gray-200 px-3 py-2 rounded text-sm text-center transition-colors"
-                        >
-                          <i className="fas fa-eye mr-1"></i>
-                          View
-                        </button>
-                      )}
-                    </div> */
-}
