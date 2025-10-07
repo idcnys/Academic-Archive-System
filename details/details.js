@@ -1,10 +1,12 @@
 // ref at the root database
-const nodename  = "civilarchive";
+const nodename  = "ArchiveSystem"; // in this child all data will be stored
 
 //admin password for the control panel
-const password = "tanmoy_civil_z670e";
+const password = "pass1234"; // admin panel password
 
 //page title
-const title = 'CivilArchive';
+const title = 'ArchiveSystem'; // Page title;
+
+
 
 export { nodename, password, title };
