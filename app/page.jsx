@@ -8,7 +8,7 @@ import { resourcesMetadata } from "@/components/resources/resources-data";
 // Shimmer loading component for main page elements
 function MainPageShimmer() {
   return (
-    <div className="min-h-screen animate-pulse">
+    <div className="w-full animate-pulse">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header shimmer */}
         <div className="text-center mb-8">
@@ -90,11 +90,11 @@ export default function Resources() {
   }
 
   return (
-    <main className="min-h-screen">
+    <div className="w-full">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <ResourcesHeader />
         <ResourcesGridOptimized />
       </div>
-    </main>
+    </div>
   );
 }

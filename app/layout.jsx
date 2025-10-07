@@ -153,13 +153,15 @@ export default function RootLayout({ children }) {
         />
       </head>
       <body
-        className={`${lato.className} antialiased bg-gray-200 dark:bg-[#071a26f1]`}
+        className={`${lato.className} antialiased bg-gray-200 dark:bg-[#071a26f1] flex flex-col min-h-screen`}
         suppressHydrationWarning={true}
       >
      
             <Navbar />
 
-            {children}
+            <main className="flex-1">
+              {children}
+            </main>
 
             <FooterComponent />
       </body>
