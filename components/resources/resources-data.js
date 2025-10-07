@@ -5,7 +5,7 @@ import image3 from "@/public/images/resources/image3.jpg";
 import image4 from "@/public/images/resources/image4.jpg";
 import { ref, get } from "firebase/database";
 import { db } from "@/lib/firebase";
-import nodename from "@/details/nodename.js";
+import {nodename} from "@/details/details.js";
 
 // Static images mapping
 const resourceImages = [image0, image1, image2, image3, image4];
@@ -20,7 +20,7 @@ const fallbackResourcesData = [
       "Just entered the matrix? Here's your starter pack: C programming, logic gates, and enough math to question your existence. Escape infinite loops early!",
     image: image0,
     links: [
-      { label: "1 - 1", url: "/drive/1xbyCdj3XQ9AsCCF8ImI13HCo25JEhgUJ" },
+      { label: "1 - 1", url: "" },
       { label: "1 - 2", url: "" },
     ],
   },

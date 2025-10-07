@@ -356,7 +356,7 @@ export default function DrivePage({ params }) {
                   className="text-[12px] border-2 border-gray-500 active:scale-95 transition-transform duration-300 text-gray-700 dark:text-gray-200 px-2 py-1 rounded-full text-center cursor-pointer"
                 >
                   <i className="fas fa-bookmark mr-1"></i>
-                  Bookmark
+                  Bookmark Folder
                 </button>
 
                 <button
@@ -364,15 +364,10 @@ export default function DrivePage({ params }) {
                   className="text-[12px] border-2 border-gray-500 active:scale-95 transition-transform duration-300 text-gray-700 dark:text-gray-200 px-2 py-1 rounded-full text-center cursor-pointer"
                 >
                   <i className="fas fa-share mr-1"></i>
-                  Share
+      
                 </button>
 
-                <button
-                  onClick={handleToggleBookmarks}
-                  className="text-[12px] border-2 border-gray-500 active:scale-95 transition-transform duration-300 text-gray-700 dark:text-gray-200 px-2 py-1 rounded-full text-center cursor-pointer"
-                >
-                  <i className="fas fa-bookmark"></i>
-                </button>
+                
               </div>
             </div>
 
@@ -565,18 +560,18 @@ export default function DrivePage({ params }) {
                       </h3>
                     </div>
 
-                    {/* File actions - only show for files, not folders */}
+                    {/* Bootstrap-style horizontal button group - only show for files, not folders */}
                     {!file.mimeType.includes("folder") && (
-                      <div className="mt-3 w-full px-2">
-                        <div className="flex justify-center gap-1 bg-gray-100 dark:bg-gray-800 rounded-full p-1">
+                      <div className="mt-3 flex justify-center">
+                        <div className="inline-flex border border-gray-300 dark:border-gray-600 rounded-md overflow-hidden shadow-sm">
                           {/* Download */}
                           {file.webContentLink && (
                             <Link
                               href={file.webContentLink}
-                              className="flex-1 text-center py-2 px-2 rounded-full hover:bg-white dark:hover:bg-gray-700 transition-all duration-200 group"
+                              className="px-3 py-2 bg-white dark:bg-gray-800 border-r border-gray-300 dark:border-gray-600 last:border-r-0 hover:bg-gray-50 dark:hover:bg-gray-700 focus:bg-gray-50 dark:focus:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-inset transition-all duration-150 group"
                               title="Download"
                             >
-                              <i className="fas fa-download text-gray-600 dark:text-gray-300 group-hover:text-blue-600 dark:group-hover:text-blue-400"></i>
+                              <i className="fas fa-download text-sm text-gray-600 dark:text-gray-300 group-hover:text-blue-600 dark:group-hover:text-blue-400"></i>
                             </Link>
                           )}
                           
@@ -588,10 +583,10 @@ export default function DrivePage({ params }) {
                                   previewID === file.id ? null : file.id
                                 )
                               }
-                              className="flex-1 text-center py-2 px-2 rounded-full hover:bg-white dark:hover:bg-gray-700 transition-all duration-200 group"
+                              className="px-3 py-2 bg-white dark:bg-gray-800 border-r border-gray-300 dark:border-gray-600 last:border-r-0 hover:bg-gray-50 dark:hover:bg-gray-700 focus:bg-gray-50 dark:focus:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-inset transition-all duration-150 group"
                               title={file.mimeType.includes("mp4") ? "Play" : "Preview"}
                             >
-                              <i className="fas fa-eye text-gray-600 dark:text-gray-300 group-hover:text-green-600 dark:group-hover:text-green-400"></i>
+                              <i className="fas fa-eye text-sm text-gray-600 dark:text-gray-300 group-hover:text-green-600 dark:group-hover:text-green-400"></i>
                             </button>
                           )}
                           
@@ -619,10 +614,10 @@ export default function DrivePage({ params }) {
                               setToast("File bookmarked");
                               setTimeout(() => setToast(null), 1500);
                             }}
-                            className="flex-1 text-center py-2 px-2 rounded-full hover:bg-white dark:hover:bg-gray-700 transition-all duration-200 group"
+                            className="px-3 py-2 bg-white dark:bg-gray-800 border-r border-gray-300 dark:border-gray-600 last:border-r-0 hover:bg-gray-50 dark:hover:bg-gray-700 focus:bg-gray-50 dark:focus:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-inset transition-all duration-150 group"
                             title="Bookmark"
                           >
-                            <i className="fas fa-bookmark text-gray-600 dark:text-gray-300 group-hover:text-yellow-600 dark:group-hover:text-yellow-400"></i>
+                            <i className="fas fa-bookmark text-sm text-gray-600 dark:text-gray-300 group-hover:text-yellow-600 dark:group-hover:text-yellow-400"></i>
                           </button>
 
                           {/* Share */}
@@ -692,10 +687,10 @@ export default function DrivePage({ params }) {
                               
                               setTimeout(() => setToast(null), 1500);
                             }}
-                            className="flex-1 text-center py-2 px-2 rounded-full hover:bg-white dark:hover:bg-gray-700 transition-all duration-200 group"
+                            className="px-3 py-2 bg-white dark:bg-gray-800 border-r border-gray-300 dark:border-gray-600 last:border-r-0 hover:bg-gray-50 dark:hover:bg-gray-700 focus:bg-gray-50 dark:focus:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-inset transition-all duration-150 group"
                             title="Share"
                           >
-                            <i className="fas fa-share text-gray-600 dark:text-gray-300 group-hover:text-purple-600 dark:group-hover:text-purple-400"></i>
+                            <i className="fas fa-share text-sm text-gray-600 dark:text-gray-300 group-hover:text-purple-600 dark:group-hover:text-purple-400"></i>
                           </button>
                         </div>
                       </div>

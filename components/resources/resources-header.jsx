@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { ref, get } from "firebase/database";
 import { db } from "@/lib/firebase";
-import nodename from "@/details/nodename.js";
+import {nodename} from "@/details/details.js";
 
 const NODE_NAME = nodename;
 

@@ -4,8 +4,8 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { ref, set, get, remove, update } from 'firebase/database';
 import { db } from '@/lib/firebase';
-import password from '@/details/password.js';
-import nodename from '@/details/nodename.js';
+import {password} from '@/details/details.js';
+import {nodename} from '@/details/details.js';
 
 // Password for admin access
 const ADMIN_PASSWORD = password;
@@ -72,7 +72,7 @@ export default function AdminMaintainPage() {
           id: "1-1",
           name: "1-1",
           links: [
-            { id: 1, label: "A", url: "" }, // Store drive ID, not full URL
+            { id: 1, label: "A", url: "" }, 
             { id: 2, label: "B", url: "" },
             { id: 3, label: "C", url: "" }
           ]
