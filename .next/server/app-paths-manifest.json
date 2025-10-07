@@ -1,6 +1,0 @@
-{
-  "/api/drive/route": "app/api/drive/route.js",
-  "/drive/[id]/page": "app/drive/[id]/page.js",
-  "/icon.png/route": "app/icon.png/route.js",
-  "/page": "app/page.js"
-}
