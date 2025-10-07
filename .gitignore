@@ -1,3 +1,6 @@
 node_modules
 .next
 .flowbite-react
+
+# Sensitive files
+credentials.json
