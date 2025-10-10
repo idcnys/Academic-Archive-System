@@ -117,7 +117,7 @@ export function Navbar() {
             title="Bookmarks"
             className="p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800"
           >
-            <i className="fas fa-bookmark text-gray-700 dark:text-gray-200"></i> <span className="text-gray-700 dark:text-gray-200"> Bookmark List</span>
+            <i className="fas fa-bookmark text-gray-700 dark:text-gray-200"></i> <span className="text-gray-700 dark:text-gray-200"> List</span>
           </button>
           
           {showBookmarks && (
