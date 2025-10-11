@@ -2,5 +2,11 @@ node_modules
 .next
 .flowbite-react
 
+# Environment variables
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
 # Sensitive files
 credentials.json
